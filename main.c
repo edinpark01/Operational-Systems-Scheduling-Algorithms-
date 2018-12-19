@@ -66,6 +66,25 @@
             a.  Once that time is up, the next process executes,
             b.  When you reach the end of the array, you return to the beginning.
             c.  When a process has been executed for its full duration, it is removed from the queue.
+
+    *************** ADDITIONAL CHANGES TO THE PROJECT ***************
+
+    The change will go as follows:
+    As you loop through the input array, once two of the queued process have been completed, I want you to
+overwrite those two with fresh randomly generated processes. Upon adding these new processes, you will need to
+re-sort your input array appropriately.
+    For SPN, you may add the new processes immediately after the two processes are completed.
+    For SRT, since it is pre-emptive, please execute another time slice on a single process before adding the two
+new processes.
+    After completing this change, since the processes are randomly generated, you should see the appropriate behavior
+from each algorithm after a few runs. If you need to better understand the difference between the two algorithms,
+please refer to your notes, or look these algorithms up online.
+    This change only effects SRT & SPN. Since you should be creating a copy of the input array for each algorithm
+before sorting it, the new processes should only exist in this temporary copy, and therefore should not exist in the
+other algorithms.
+    If this is at all confusing or you need clarity on what I mean, please post any questions related to this change
+here.
+
  */
 
 #include <stdio.h>
@@ -105,11 +124,11 @@ int main(int argc, char ** argv) {
     outputProcesses(processes, ARR_SIZE);
     printf("\n\n");
 
-    sched_fcfs(processes, ARR_SIZE);                    // First Come First Serve Scheduling Algorithm
-    sched_priority(processes, ARR_SIZE, NULL);          // NonPreempitive Priority Scheduling Algorithm
-    sched_spn(processes, ARR_SIZE);                     // NonPreempitive Shortest Process Next Scheduling Algorithm
+    //sched_fcfs(processes, ARR_SIZE);                    // First Come First Serve Scheduling Algorithm
+    //sched_priority(processes, ARR_SIZE, NULL);          // NonPreempitive Priority Scheduling Algorithm
+    //sched_spn(processes, ARR_SIZE);                     // NonPreempitive Shortest Process Next Scheduling Algorithm
     sched_srt(processes, ARR_SIZE, TIME_SLICE);         // Preempitive Shortest Remaining Time Scheduling Algorithm
-    sched_round_robin(processes, ARR_SIZE, TIME_SLICE); // Round Robin Scheduling Algorithm
+    //sched_round_robin(processes, ARR_SIZE, TIME_SLICE); // Round Robin Scheduling Algorithm
 
     // Deallocate all objects on the original array, including the space allocated for the array itself.
     arrayCleanUp(processes, ARR_SIZE);
@@ -160,6 +179,22 @@ void sched_spn(struct process ** processes, int arrSize) {
     // Sorts copy array based on CPU bursts
     mergeSorting(copy, 0, arrSize - 1, DURATION);
 
+    outputProcess(copy[0]); // "Execute" first process
+    outputProcess(copy[1]); // "Execute" second process
+
+    printf("\nFinished first two queued processes,\nAdding two new processes and resorting queued...\n");
+
+    // Add two new fresh processes
+    copy[0] -> duration = rand() % 5 + 1;
+    copy[0] -> priority = rand() % arrSize + 1;
+    copy[1] -> duration = rand() % 5 + 1;
+    copy[1] -> priority = rand() % arrSize + 1;
+
+    printf("\n");
+
+    // Sorts copy array based on CPU bursts
+    mergeSorting(copy, 0, arrSize - 1, DURATION);
+
     // Output sorted array
     outputProcesses(copy, arrSize);
 
@@ -172,13 +207,14 @@ void sched_spn(struct process ** processes, int arrSize) {
 
 void sched_srt(struct process ** processes, int arrSize, int timeSlice) {
     /**
-     * SRT keep track if a process is arriving and its CPU burst is less than current process remaining time
+     * SRT keeps track if a process is arriving and its CPU burst is less than current process remaining time
      * For this project, we are assuming that all processes arrived at the same time, so always execute the
      * smallest unfinished process AFTER sorting the processes array
      **/
 
     printf("Shortest Remaining Time:\n");
-
+    int finished = 0;
+    int addNewProcesses = 0;
     int ticker;
     int next = 0;
     int *processState = calloc((size_t) arrSize, sizeof(int));
@@ -202,10 +238,34 @@ void sched_srt(struct process ** processes, int arrSize, int timeSlice) {
         while ( ticker < timeSlice && current->duration > 0 ){
             ticker++;
             current->duration--;
+            //outputProcess(current);
+        }
+
+        // Add new Processes checker
+        if ( finished == 2 ){ addNewProcesses = 1; }
+
+        if ( addNewProcesses ){
+
+            printf("\nFinished first two queued processes,\nAdding two new processes and resorting queued...\n");
+
+            // Add two new fresh processes
+            copy[0] -> duration = rand() % 5 + 1;
+            copy[0] -> priority = rand() % arrSize + 1;
+            copy[1] -> duration = rand() % 5 + 1;
+            copy[1] -> priority = rand() % arrSize + 1;
+
+            next = 0;
+            addNewProcesses = 0;
+            finished += 1;
+            printf("\n");
         }
 
         // if process is finished
-        if ( current->duration == 0 ){ next++; }  // Increment next
+        if ( current->duration == 0 ) {
+            // Increment next
+            next++;
+            finished++;
+        }
     }
 
     // Heap Clean Up
